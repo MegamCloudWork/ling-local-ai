@@ -1,0 +1,21 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "local-vllm": {
+      "name": "local ling vllm",
+      "options": {
+        "baseURL": "http://ling-vllm:8000/v1",
+        "apiKey": "token-ignored"
+      },
+      "models": {
+        "inclusionAI/Ling-3.0-tiny-int4": {
+          "name": "Ling 3.0 Tiny INT4",
+          "limit": {
+            "context": 131072,
+            "output": 8192
+          }
+        }
+      }
+    }
+  }
+}

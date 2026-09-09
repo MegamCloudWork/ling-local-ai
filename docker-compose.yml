@@ -1,0 +1,63 @@
+services:
+  # -------------------------------------------------------------
+  # 1. Local vLLM Inference Engine (GPU-accelerated Ling 3.0)
+  # -------------------------------------------------------------
+  ling-vllm:
+    image: vllm/vllm-openai:latest
+    container_name: ling-vllm
+    restart: unless-stopped
+    ipc: host
+    ports:
+      - "8000:8000"
+    volumes:
+      - ${USERPROFILE}/.cache/huggingface:/root/.cache/huggingface
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    command: >
+      --model inclusionAI/Ling-3.0-tiny-int4
+      --trust-remote-code
+      --tensor-parallel-size 1
+      --gpu-memory-utilization 0.75
+      --max-model-len 131072
+      --enable-prefix-caching
+      --enable-auto-tool-choice
+      --tool-call-parser ling3
+      --reasoning-parser ling3
+      --max-num-seqs 1
+    networks:
+      - ai-backend-net
+
+  # -------------------------------------------------------------
+  # 2. Standard OpenCode Sandbox (No local build or npm required)
+  # -------------------------------------------------------------
+  opencode:
+    image: ghcr.io/pilinux/opencode:latest
+    container_name: opencode-agent
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+    ports:
+      - "4096:4096"   # Exposes OpenCode Web UI
+    volumes:
+      # Target codebase/project you want the agent to work on
+      - C:/Projects/my-app:/workspace
+      # Configuration persistence
+      - ${USERPROFILE}/.config/opencode:/home/opencode/.config/opencode
+      - ${USERPROFILE}/.local/share/opencode:/home/opencode/.local/share/opencode
+    environment:
+      - OPENCODE_SERVER_USERNAME=admin
+      - OPENCODE_SERVER_PASSWORD=secretpassword
+    working_dir: /workspace
+    networks:
+      - ai-backend-net
+    depends_on:
+      - ling-vllm
+
+networks:
+  ai-backend-net:
+    driver: bridge
